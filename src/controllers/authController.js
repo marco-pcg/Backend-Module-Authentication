@@ -1,54 +1,74 @@
-import { generateToken } from "../services/authService.js";
+import {
+  requestMagicLink,
+  verifyMagicLink,
+  AuthError,
+} from "../services/authService.js";
+
+// Validação simples de formato de email, suficiente para fins didáticos
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Controller chamado depois que o Passport já autenticou o usuário
- * com sucesso no callback do Google (req.user foi preenchido pela
- * estratégia configurada em config/passport.js).
- *
- * Aqui apenas geramos o JWT da aplicação e devolvemos a resposta
- * para o cliente.
+ * POST /auth/request-link
+ * Recebe um email e dispara o fluxo de geração/envio do Magic Link.
  */
-function googleCallback(req, res) {
+export async function requestLink(req, res) {
   try {
-    const user = req.user;
+    const { email } = req.body;
 
-    if (!user) {
-      return res.status(401).json({
-        message: "Não foi possível autenticar o usuário com o Google.",
-      });
+    if (!email) {
+      return res.status(400).json({ message: "O campo 'email' é obrigatório." });
     }
 
-    const token = generateToken(user);
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ message: "Formato de email inválido." });
+    }
 
+    await requestMagicLink(email);
+
+    // Por segurança/didática: não revelamos se o email já existia ou não,
+    // e nunca retornamos o token na resposta da API.
     return res.status(200).json({
-      message: "Login realizado com sucesso",
-      token,
-      user: {
-        id: user.id,
-        googleId: user.googleId,
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-      },
+      message: "Se o email estiver correto, um link de acesso foi enviado.",
     });
   } catch (error) {
-    console.error("[authController] Erro ao gerar token:", error.message);
-    return res.status(500).json({
-      message: "Erro interno ao gerar o token de autenticação.",
-    });
+    console.error("Erro ao processar solicitação de Magic Link:", error);
+    return res.status(500).json({ message: "Erro ao enviar o link de acesso." });
   }
 }
 
 /**
- * Controller da rota protegida /auth/profile.
- * Como o authMiddleware já validou o token e preencheu req.user
- * com o payload do JWT, aqui só devolvemos essas informações.
+ * GET /auth/verify?token=...
+ * Valida o Magic Token e retorna o JWT da aplicação.
  */
-function getProfile(req, res) {
+export async function verify(req, res) {
+  try {
+    const { token } = req.query;
+
+    const { user, jwtToken } = verifyMagicLink(token);
+
+    return res.status(200).json({
+      message: "Login realizado com sucesso",
+      token: jwtToken,
+      user,
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
+    console.error("Erro ao verificar Magic Link:", error);
+    return res.status(500).json({ message: "Erro ao verificar o link de acesso." });
+  }
+}
+
+/**
+ * GET /auth/profile
+ * Rota protegida: retorna os dados do usuário autenticado.
+ * O middleware de autenticação já garantiu que req.user existe e é válido.
+ */
+export function profile(req, res) {
   return res.status(200).json({
-    message: "Perfil autenticado",
+    message: "Usuário autenticado",
     user: req.user,
   });
 }
-
-export { googleCallback, getProfile };

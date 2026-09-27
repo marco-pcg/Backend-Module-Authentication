@@ -1,44 +1,65 @@
+// Banco de dados em memória, usado apenas para fins didáticos/demonstração.
+// Os dados são perdidos toda vez que o servidor é reiniciado.
+
 /**
- * Base de dados EM MEMÓRIA, apenas para fins didáticos.
- *
- * Em um projeto real, isso seria substituído por um banco de dados
- * (PostgreSQL, MongoDB, MySQL, etc). Aqui usamos um array simples
- * para deixar o fluxo de autenticação fácil de entender e explicar.
- *
- * Importante: como é um array em memória, os usuários são perdidos
- * toda vez que o servidor é reiniciado.
+ * Estrutura de cada usuário:
+ * {
+ *   id: number,
+ *   email: string,
+ *   magicToken: string | null,
+ *   magicTokenExpiresAt: number | null // timestamp em milissegundos
+ * }
  */
+export const users = [];
 
-const users = [];
-
-// Contador simples para gerar IDs incrementais (1, 2, 3, ...)
 let nextId = 1;
 
 /**
- * Busca um usuário pelo googleId.
- * @param {string} googleId
- * @returns {object|undefined}
+ * Busca um usuário pelo email.
+ * @param {string} email
+ * @returns {object | undefined}
  */
-function findUserByGoogleId(googleId) {
-  return users.find((user) => user.googleId === googleId);
+export function findUserByEmail(email) {
+  return users.find((user) => user.email === email);
 }
 
 /**
- * Cria um novo usuário e adiciona à base em memória.
- * @param {{ googleId: string, name: string, email: string, picture: string }} data
+ * Busca um usuário pelo id.
+ * @param {number} id
+ * @returns {object | undefined}
+ */
+export function findUserById(id) {
+  return users.find((user) => user.id === id);
+}
+
+/**
+ * Cria um novo usuário e adiciona ao array em memória.
+ * @param {string} email
  * @returns {object} usuário criado
  */
-function createUser({ googleId, name, email, picture }) {
+export function createUser(email) {
   const newUser = {
     id: nextId++,
-    googleId,
-    name,
     email,
-    picture,
+    magicToken: null,
+    magicTokenExpiresAt: null,
   };
 
   users.push(newUser);
   return newUser;
 }
 
-export { users, findUserByGoogleId, createUser };
+/**
+ * Busca o usuário pelo email; caso não exista, cria um novo.
+ * @param {string} email
+ * @returns {object} usuário encontrado ou recém-criado
+ */
+export function findOrCreateUser(email) {
+  const existingUser = findUserByEmail(email);
+
+  if (existingUser) {
+    return existingUser;
+  }
+
+  return createUser(email);
+}

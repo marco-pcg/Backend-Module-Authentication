@@ -1,73 +1,139 @@
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { findUserByGoogleId, createUser } from "../database/users.js";
+import { findOrCreateUser, users } from "../database/users.js";
+import { sendMagicLinkEmail } from "../config/mailer.js";
+
+const { JWT_SECRET, MAGIC_LINK_SECRET, APP_URL } = process.env;
+
+// Validade do Magic Token: 10 minutos (em milissegundos)
+const MAGIC_TOKEN_EXPIRATION_MS = 10 * 60 * 1000;
+
+// Validade do JWT da aplicação
+const JWT_EXPIRATION = "1h";
 
 /**
- * Busca um usuário existente pelo googleId ou cria um novo caso
- * ainda não exista na base em memória.
+ * Gera um token aleatório e seguro para ser usado como Magic Token.
+ * Optamos por um token aleatório (não um JWT) para deixar claro,
+ * de forma didática, que Magic Token e JWT são conceitos diferentes.
  *
- * @param {{ googleId: string, name: string, email: string, picture: string }} profileData
- * @returns {object} usuário (existente ou recém-criado)
+ * O MAGIC_LINK_SECRET é usado para "temperar" o token antes do hash,
+ * dificultando que alguém adivinhe tokens válidos.
+ *
+ * @returns {string} token em formato hexadecimal
  */
-function findOrCreateUser(profileData) {
-  const { googleId, name, email, picture } = profileData;
+function generateMagicToken() {
+  const randomPart = crypto.randomBytes(32).toString("hex");
+  const hash = crypto
+    .createHash("sha256")
+    .update(randomPart + MAGIC_LINK_SECRET)
+    .digest("hex");
 
-  if (!googleId) {
-    throw new Error("googleId não informado pelo Google.");
+  return hash;
+}
+
+/**
+ * Passo 1 do fluxo: solicita o Magic Link.
+ * - encontra ou cria o usuário pelo email;
+ * - gera um novo Magic Token com expiração de 10 minutos;
+ * - salva o token no usuário;
+ * - monta a URL do link e envia por email (ou exibe no console).
+ *
+ * @param {string} email
+ */
+export async function requestMagicLink(email) {
+  const user = findOrCreateUser(email);
+
+  const magicToken = generateMagicToken();
+  const expiresAt = Date.now() + MAGIC_TOKEN_EXPIRATION_MS;
+
+  user.magicToken = magicToken;
+  user.magicTokenExpiresAt = expiresAt;
+
+  const magicLink = `${APP_URL}/auth/verify?token=${magicToken}`;
+
+  await sendMagicLinkEmail(user.email, magicLink);
+}
+
+/**
+ * Erros de negócio conhecidos, usados para que o controller
+ * saiba qual status HTTP retornar.
+ */
+export class AuthError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.name = "AuthError";
+    this.statusCode = statusCode;
+  }
+}
+
+/**
+ * Passo 2 do fluxo: verifica o Magic Token recebido via querystring.
+ * - localiza o usuário dono do token;
+ * - verifica se o token não expirou;
+ * - invalida o token (uso único);
+ * - gera o JWT da aplicação.
+ *
+ * @param {string} token
+ * @returns {{ user: { id: number, email: string }, jwtToken: string }}
+ */
+export function verifyMagicLink(token) {
+  if (!token) {
+    throw new AuthError("Token não informado.", 400);
   }
 
-  let user = findUserByGoogleId(googleId);
+  const user = findUserWithMagicToken(token);
 
   if (!user) {
-    user = createUser({ googleId, name, email, picture });
+    throw new AuthError("Token inválido.", 400);
   }
 
-  return user;
+  if (!user.magicTokenExpiresAt || Date.now() > user.magicTokenExpiresAt) {
+    // Limpa o token expirado para não deixar "lixo" no usuário
+    user.magicToken = null;
+    user.magicTokenExpiresAt = null;
+    throw new AuthError("Token expirado. Solicite um novo link.", 401);
+  }
+
+  // Invalida o Magic Link imediatamente, garantindo uso único
+  user.magicToken = null;
+  user.magicTokenExpiresAt = null;
+
+  const jwtToken = generateJwt(user);
+
+  return {
+    user: { id: user.id, email: user.email },
+    jwtToken,
+  };
 }
 
 /**
- * Gera um JWT próprio da aplicação para o usuário autenticado.
- *
- * @param {object} user
- * @returns {string} token JWT assinado
+ * Busca, entre todos os usuários, aquele que possui o Magic Token informado.
+ * @param {string} token
+ * @returns {object | undefined}
  */
-function generateToken(user) {
-  const secret = process.env.JWT_SECRET;
+function findUserWithMagicToken(token) {
+  return users.find((user) => user.magicToken === token);
+}
 
-  if (!secret) {
-    throw new Error(
-      "JWT_SECRET não configurado. Verifique o arquivo .env."
-    );
-  }
-
+/**
+ * Gera o JWT da aplicação para o usuário autenticado.
+ * @param {{ id: number, email: string }} user
+ * @returns {string} JWT assinado
+ */
+function generateJwt(user) {
   const payload = {
     sub: user.id,
-    googleId: user.googleId,
     email: user.email,
-    name: user.name,
   };
 
-  const token = jwt.sign(payload, secret, { expiresIn: "1h" });
-
-  return token;
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 }
 
 /**
- * Verifica e decodifica um JWT.
- * Lança erro caso o token seja inválido ou esteja expirado.
- *
+ * Valida um JWT da aplicação.
  * @param {string} token
  * @returns {object} payload decodificado
  */
-function verifyToken(token) {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error(
-      "JWT_SECRET não configurado. Verifique o arquivo .env."
-    );
-  }
-
-  return jwt.verify(token, secret);
+export function verifyJwt(token) {
+  return jwt.verify(token, JWT_SECRET);
 }
-
-export { findOrCreateUser, generateToken, verifyToken };

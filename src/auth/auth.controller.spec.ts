@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 describe('AuthController', () => {
   let app: INestApplication;
@@ -15,7 +16,22 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [{ provide: AuthService, useValue: authService }],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({
+        canActivate: (context: {
+          switchToHttp: () => {
+            getRequest: () => { user: { userId: number; email: string } };
+          };
+        }) => {
+          context.switchToHttp().getRequest().user = {
+            userId: 7,
+            email: 'ada@example.com',
+          };
+          return true;
+        },
+      })
+      .compile();
 
     app = module.createNestApplication();
     await app.init();
@@ -54,5 +70,12 @@ describe('AuthController', () => {
       .expect(response);
 
     expect(authService.login).toHaveBeenCalledWith('ada@example.com', 'secret');
+  });
+
+  it('returns the authenticated user at GET /auth/profile', async () => {
+    await request(app.getHttpServer())
+      .get('/auth/profile')
+      .expect(200)
+      .expect({ userId: 7, email: 'ada@example.com' });
   });
 });

@@ -10,7 +10,6 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 
-// Rota simples de "saúde" da API, útil para conferir que o servidor está no ar
 app.get("/", (req, res) => {
   res.json({ message: "API de Login Mágico (Magic Link) funcionando." });
 });

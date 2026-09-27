@@ -4,13 +4,9 @@ import {
   AuthError,
 } from "../services/authService.js";
 
-// Validação simples de formato de email, suficiente para fins didáticos
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * POST /auth/request-link
- * Recebe um email e dispara o fluxo de geração/envio do Magic Link.
- */
+
 export async function requestLink(req, res) {
   try {
     const { email } = req.body;
@@ -25,8 +21,6 @@ export async function requestLink(req, res) {
 
     await requestMagicLink(email);
 
-    // Por segurança/didática: não revelamos se o email já existia ou não,
-    // e nunca retornamos o token na resposta da API.
     return res.status(200).json({
       message: "Se o email estiver correto, um link de acesso foi enviado.",
     });
@@ -36,19 +30,14 @@ export async function requestLink(req, res) {
   }
 }
 
-/**
- * GET /auth/verify?token=...
- * Valida o Magic Token e retorna o JWT da aplicação.
- */
 export async function verify(req, res) {
   try {
     const { token } = req.query;
 
-    const { user, jwtToken } = verifyMagicLink(token);
+    const user = verifyMagicLink(token);
 
     return res.status(200).json({
       message: "Login realizado com sucesso",
-      token: jwtToken,
       user,
     });
   } catch (error) {
@@ -59,16 +48,4 @@ export async function verify(req, res) {
     console.error("Erro ao verificar Magic Link:", error);
     return res.status(500).json({ message: "Erro ao verificar o link de acesso." });
   }
-}
-
-/**
- * GET /auth/profile
- * Rota protegida: retorna os dados do usuário autenticado.
- * O middleware de autenticação já garantiu que req.user existe e é válido.
- */
-export function profile(req, res) {
-  return res.status(200).json({
-    message: "Usuário autenticado",
-    user: req.user,
-  });
 }

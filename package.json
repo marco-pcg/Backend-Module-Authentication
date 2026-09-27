@@ -1,7 +1,7 @@
 {
   "name": "express-magic-link",
   "version": "1.0.0",
-  "description": "Demonstração didática de Login Mágico (Magic Link) com Express.js e JWT",
+  "description": "Demonstração didática de Login Mágico (Magic Link) com Express.js",
   "type": "module",
   "main": "src/app.js",
   "scripts": {
@@ -10,7 +10,6 @@
   },
   "keywords": [
     "magic-link",
-    "jwt",
     "express",
     "authentication"
   ],
@@ -18,7 +17,6 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^10.0.11"
   },
   "devDependencies": {

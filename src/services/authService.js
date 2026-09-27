@@ -1,20 +1,14 @@
 import crypto from "crypto";
-import jwt from "jsonwebtoken";
 import { findOrCreateUser, users } from "../database/users.js";
 import { sendMagicLinkEmail } from "../config/mailer.js";
 
-const { JWT_SECRET, MAGIC_LINK_SECRET, APP_URL } = process.env;
+const { MAGIC_LINK_SECRET, APP_URL } = process.env;
 
 // Validade do Magic Token: 10 minutos (em milissegundos)
 const MAGIC_TOKEN_EXPIRATION_MS = 10 * 60 * 1000;
 
-// Validade do JWT da aplicação
-const JWT_EXPIRATION = "1h";
-
 /**
  * Gera um token aleatório e seguro para ser usado como Magic Token.
- * Optamos por um token aleatório (não um JWT) para deixar claro,
- * de forma didática, que Magic Token e JWT são conceitos diferentes.
  *
  * O MAGIC_LINK_SECRET é usado para "temperar" o token antes do hash,
  * dificultando que alguém adivinhe tokens válidos.
@@ -71,10 +65,10 @@ export class AuthError extends Error {
  * - localiza o usuário dono do token;
  * - verifica se o token não expirou;
  * - invalida o token (uso único);
- * - gera o JWT da aplicação.
+ * - retorna os dados do usuário autenticado.
  *
  * @param {string} token
- * @returns {{ user: { id: number, email: string }, jwtToken: string }}
+ * @returns {{ id: number, email: string }}
  */
 export function verifyMagicLink(token) {
   if (!token) {
@@ -98,12 +92,7 @@ export function verifyMagicLink(token) {
   user.magicToken = null;
   user.magicTokenExpiresAt = null;
 
-  const jwtToken = generateJwt(user);
-
-  return {
-    user: { id: user.id, email: user.email },
-    jwtToken,
-  };
+  return { id: user.id, email: user.email };
 }
 
 /**
@@ -113,27 +102,4 @@ export function verifyMagicLink(token) {
  */
 function findUserWithMagicToken(token) {
   return users.find((user) => user.magicToken === token);
-}
-
-/**
- * Gera o JWT da aplicação para o usuário autenticado.
- * @param {{ id: number, email: string }} user
- * @returns {string} JWT assinado
- */
-function generateJwt(user) {
-  const payload = {
-    sub: user.id,
-    email: user.email,
-  };
-
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
-}
-
-/**
- * Valida um JWT da aplicação.
- * @param {string} token
- * @returns {object} payload decodificado
- */
-export function verifyJwt(token) {
-  return jwt.verify(token, JWT_SECRET);
 }

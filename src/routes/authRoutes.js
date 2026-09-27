@@ -1,16 +1,12 @@
 import { Router } from "express";
-import { requestLink, verify, profile } from "../controllers/authController.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import { requestLink, verify } from "../controllers/authController.js";
 
 const router = Router();
 
-// Passo 1: usuário solicita o Magic Link informando o email
-router.post("/request-link", requestLink);
+router.post("/request-link", requestLink); 
+// Recebe o email do usuário e dispara o fluxo de geração/envio do Magic Link
 
-// Passo 2: usuário clica no link recebido e o token é validado
-router.get("/verify", verify);
-
-// Rota protegida: exige um JWT válido no header Authorization
-router.get("/profile", authMiddleware, profile);
+router.get("/verify", verify); 
+// Loga após o usuário clicar no link enviado por email
 
 export default router;

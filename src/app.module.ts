@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { User } from './users/entities/user.entity.js';
 import { UsersModule } from './users/users.module.js';
 
-const databaseModule = [
+const databaseModule =
+  process.env.NODE_ENV === 'test'
+    ? []
+    : [
         TypeOrmModule.forRootAsync({
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => ({
@@ -23,11 +27,14 @@ const databaseModule = [
         }),
       ];
 
+const featureModules =
+  process.env.NODE_ENV === 'test' ? [] : [UsersModule, AuthModule];
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ...databaseModule,
-    UsersModule,
+    ...featureModules,
   ],
   controllers: [AppController],
   providers: [AppService],

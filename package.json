@@ -1,42 +1,30 @@
 {
-  "name": "backend-auth",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "name": "express-google-auth",
+  "version": "1.0.0",
+  "description": "Projeto didático de autenticação com Google usando Node.js, Express, Passport, Google OAuth 2.0 e JWT",
+  "main": "src/app.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/app.ts"
+    "dev": "nodemon src/app.js",
+    "start": "node src/app.js"
   },
+  "keywords": [
+    "express",
+    "passport",
+    "google-oauth",
+    "jwt",
+    "authentication"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "dotenv": "^18.0.4",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1",
-    "pg": "^8.23.0",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1",
-    "typeorm": "^1.1.1"
+    "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.0.0",
-    "@types/passport-jwt": "^4.0.1",
-    "@types/pg": "^8.23.1",
-    "@types/supertest": "^7.0.0",
-    "@vitest/coverage-v8": "^4.1.2",
-    "oxlint": "^1.58.0",
-    "prettier": "^3.4.2",
-    "source-map-support": "^0.5.21",
-    "supertest": "^7.0.0",
-    "tsx": "^4.23.15",
-    "typescript": "^6.0.2",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.1.2"
+    "nodemon": "^3.1.4"
   }
 }

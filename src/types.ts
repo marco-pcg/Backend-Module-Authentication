@@ -1,15 +1,5 @@
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  password?: string;
-}
+import type { Request } from 'express';
 
-export interface AuthenticatedRequest extends Express.Request {
-  user?: Pick<User, 'id' | 'email'>;
-}
-
-export interface AuthResult {
-  access_token: string;
-  user: Omit<User, 'password'>;
+export interface AuthenticatedRequest extends Request {
+  user?: { id: number; email: string };
 }

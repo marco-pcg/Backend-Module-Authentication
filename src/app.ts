@@ -1,9 +1,16 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { AuthModule } from './auth/auth.module.js';
+import { openApiDocument } from './docs/openapi.js';
 import { UsersModule } from './users/users.module.js';
 
 export const app = express();
 app.use(express.json());
+
+app.get('/docs/openapi.json', (_request, response) => {
+  response.json(openApiDocument);
+});
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
 
 const usersModule = new UsersModule();
 const authModule = new AuthModule(usersModule.service);

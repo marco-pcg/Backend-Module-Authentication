@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "dev": "tsx src/app.ts"
+    "dev": "tsx --watch src/app.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -7,10 +7,9 @@ export class UsersController {
   readonly router = Router();
 
   constructor(private readonly usersService: UsersService) {
-    this.router.use(authenticate);
     this.router.post('/', this.create);
     this.router.get('/', this.findAll);
-    this.router.get('/:id', this.findOne);
+    this.router.get('/:id', authenticate, this.findOne);
     this.router.patch('/:id', this.update);
     this.router.delete('/:id', this.remove);
   }

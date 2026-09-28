@@ -1,8 +1,7 @@
 import 'reflect-metadata'
 import { DataSource } from 'typeorm';
 import { config } from '../config.js';
-import { User } from '../users/user.entity.js';
-import { CreateUsersTable1710000000000 } from './migrations/1710000000000-CreateUsersTable.js';
+import { User } from '../users/user.entity.ts';
 
 export const dataSource = new DataSource({
   type: 'postgres',
@@ -12,7 +11,9 @@ export const dataSource = new DataSource({
   password: config.database.password,
   database: config.database.name,
   entities: [User],
-  migrations: [CreateUsersTable1710000000000],
-  migrationsRun: true,
   synchronize: true,
 });
+
+export const initializeDataSource = () => {
+  return dataSource.initialize();
+}

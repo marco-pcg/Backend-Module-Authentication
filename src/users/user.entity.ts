@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('users')
 export class User {
@@ -11,6 +11,15 @@ export class User {
   @Column({ unique: true, type: 'varchar', length: 255 })
   email!: string;
 
-  @Column({ select: false, type: 'varchar', length: 255 })
-  password!: string;
+  @Column({ select: false, nullable: true, type: 'varchar', length: 255 })
+  password?: string;
+
+  @Column({ nullable: true, unique: true, type: 'varchar', length: 255 })
+  googleId?: string;
+
+  @Column({ nullable: true, type: 'varchar', length: 255 })
+  picture?: string;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }

@@ -2,15 +2,24 @@ import * as bcrypt from 'bcrypt';
 import { User } from './user.entity.js';
 import { UsersRepository } from './users.repository.js';
 import { CreateUserInput, UpdateUserInput } from './dto/user.dto.js';
+import { GoogleUser } from '../types.ts';
 
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
   async create(input: CreateUserInput): Promise<User> {
-    const password = await bcrypt.hash(input.password, 12);
-    return this.usersRepository.save(
-      this.usersRepository.create({ ...input, password }),
-    );
+    let hashedPassword: string | undefined = undefined
+
+    if (input.password) {
+      hashedPassword =  await bcrypt.hash(input.password, 12);
+    }
+
+    const user = this.usersRepository.create({
+      ...input,
+      password: hashedPassword,
+    })
+
+    return this.usersRepository.save(user);
   }
 
   findAll(): Promise<User[]> {

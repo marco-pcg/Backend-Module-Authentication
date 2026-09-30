@@ -1,10 +1,11 @@
 import { Repository } from 'typeorm';
 import { User } from './user.entity.js';
+import { GoogleUser } from '../types.ts';
 
 export class UsersRepository {
   constructor(private readonly repository: Repository<User>) {}
 
-  create(user: Pick<User, 'name' | 'email' | 'password'>): User {
+  create(user: Partial<User>): User {
     return this.repository.create(user);
   }
 

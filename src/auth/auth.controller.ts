@@ -1,5 +1,7 @@
 import { RequestHandler, Router } from 'express';
 import { AuthService } from './auth.service.js';
+import { oauth2Client, SCOPES } from '../utils/googleClient.ts';
+import { GoogleUser } from '../types.ts';
 
 export class AuthController {
   readonly router = Router();
@@ -7,6 +9,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {
     this.router.post('/register', this.register);
     this.router.post('/login', this.login);
+    this.router.get('/google', this.googleLoginHandler);
+    this.router.get('/google/callback', this.googleCallbackHandler);
   }
 
   private register: RequestHandler = async (request, response, next) => {
@@ -30,6 +34,47 @@ export class AuthController {
       next(error);
     }
   };
+
+  private googleLoginHandler: RequestHandler = async (request, response) => {
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: SCOPES,
+      prompt: 'consent',
+    });
+    response.redirect(authUrl);
+  }
+
+  private googleCallbackHandler: RequestHandler = async (request, response) => {
+    const code = request.query.code as string
+
+    if (!code) {
+      return response.status(400).json({ error: 'Missing code parameter' });
+    }
+
+    try {
+      const { tokens } = await oauth2Client.getToken(code);
+      oauth2Client.setCredentials(tokens);
+
+      const userResponse = await oauth2Client.request<GoogleUser>({
+        url: 'https://www.googleapis.com/oauth2/v2/userinfo',
+        method: 'GET',
+      });
+
+      const googleUser = userResponse.data;
+
+      await this.authService.findOrCreateGoogleUser(googleUser)
+
+      return response.json({
+        message: 'Authentication successful',
+        user: googleUser,
+        tokens
+      })
+
+    } catch (error) {
+      console.error('Error exchanging code for tokens:', error);
+      return response.status(500).json({ error: 'Failed to authenticate user' });
+    }
+  }
 }
 
 function validateCredentials(

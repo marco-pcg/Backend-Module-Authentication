@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
 import { User } from '../users/user.entity.js';
 import { CreateUserInput, UsersService } from '../users/users.service.js';
+import { GoogleUser } from '../types.ts';
+import { UserAdapter } from '../users/adapter/user.adapter.ts';
 
 export class AuthService {
   constructor(private readonly usersService: UsersService) {}
@@ -14,6 +16,21 @@ export class AuthService {
       throw error;
     }
     return this.issueToken(await this.usersService.create(input));
+  }
+
+  async findOrCreateGoogleUser (googleUser: GoogleUser) {
+    const user = await this.usersService.findByEmail(googleUser.email);
+
+      if (user) {
+        await this.usersService.create(user)
+
+        return user
+      }
+
+    const newUserDto = UserAdapter.fromGooglePayload(googleUser) as CreateUserInput;
+    const newUser = await this.usersService.create(newUserDto);
+
+    return this.issueToken(newUser);
   }
 
   async login(email: string, password: string) {

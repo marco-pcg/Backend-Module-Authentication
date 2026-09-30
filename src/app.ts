@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { dataSource } from './database/data-source.ts';
@@ -11,6 +11,9 @@ const authModule = new AuthModule(usersModule.service);
 
 app.use('/auth', authModule.router);
 app.use('/users', usersModule.router);
+app.use('/', (req: Request, res: Response) => {
+  res.send('<a href="/auth/google">Sign in with Google</a>')
+})
 
 dataSource.initialize()
   .then(() => {

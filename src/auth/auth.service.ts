@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from '../users/dto/create-user.dto.js';
+import { CreateGoogleUserDto, CreateUserDto } from '../users/dto/create-user.dto.js';
 import { User } from '../users/entities/user.entity.js';
 import { UsersService } from '../users/users.service.js';
 
@@ -24,8 +24,18 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user || !(await bcrypt.compare(password, user.password!))) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    return this.issueToken(user);
+  }
+
+  async googleLogin (reqUser: CreateGoogleUserDto) {
+    const user = await this.usersService.findOrCreateGoogleUser(reqUser);
+
+    if (!user) {
+      throw new UnauthorizedException('Google login failed');
     }
 
     return this.issueToken(user);

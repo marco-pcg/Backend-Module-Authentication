@@ -48,4 +48,38 @@ export class UsersService {
   async remove(id: number): Promise<void> {
     await this.usersRepository.delete(id);
   }
+
+  async findOrCreateGoogleUser (googleUser: {
+    googleId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    picture: string;
+    accessToken: string;
+  }): Promise<User> {
+    let user = await this.usersRepository.findOne({
+      where: [{ googleId: googleUser.googleId }, { email: googleUser.email }]
+    })
+
+    if (user) {
+      if (!user.googleId) {
+        user.googleId = googleUser.googleId
+        user.picture = googleUser.picture
+        user.accessToken = googleUser.accessToken
+        await this.usersRepository.save(user)
+      }
+      return user
+    }
+
+    const newUser = this.usersRepository.create({
+      email: googleUser.email,
+      name: `${googleUser.firstName} ${googleUser.lastName ?? ''}`.trim(),
+      googleId: googleUser.googleId,
+      picture: googleUser.picture,
+      accessToken: googleUser.accessToken
+    })
+
+    return await this.usersRepository.save(newUser)
+  }
+
 }

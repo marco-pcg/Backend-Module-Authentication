@@ -11,6 +11,15 @@ export class User {
   @Column({ unique: true })
   email!: string;
 
-  @Column({ select: false })
-  password!: string;
+  @Column({ select: false, nullable: true })
+  password?: string;
+
+  @Column({ select: false, nullable: true })
+  googleId?: string;
+
+  @Column({ nullable: true })
+  picture?: string;
+
+  @Column({ nullable: true })
+  accessToken?: string;
 }
